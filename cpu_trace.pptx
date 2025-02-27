@@ -1,0 +1,57 @@
+{
+  "duration_ms": 10000,
+  "data_sources": [
+    {
+      "config": {
+        "cpu_sampling_frequency": 99,
+        "per_cpu_load": true,
+        "per_process_load": true,
+        "proc_stats": {
+          "process_stats": true,
+          "thread_stats": true
+        }
+      },
+      "name": "linux.ftrace",
+      "target_buffer": 0
+    },
+    {
+      "config": {
+        "atrace_categories": [
+          "sched",
+          "freq",
+          "idle"
+        ]
+      },
+      "name": "linux.atrace",
+      "target_buffer": 0
+    },
+    {
+      "config": {
+        "meminfo": true,
+        "vmstat": true
+      },
+      "name": "linux.sys_stats",
+      "target_buffer": 0
+    },
+        {
+      "config": {
+        "battery_counters": true
+      },
+      "name": "android.battery",
+      "target_buffer": 0
+    },
+    {
+      "config": {
+        "power_counters": true
+      },
+      "name": "android.power",
+      "target_buffer": 0
+    }
+  ],
+  "buffers": [
+    {
+      "size_kb": 65536
+    }
+  ],
+  "flush_period_ms": 30000
+}
