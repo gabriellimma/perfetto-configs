@@ -1,0 +1,108 @@
+# Configuração de buffers para armazenar dados coletados durante o trace
+# Buffer 0: Buffer principal para armazenar a maioria dos dados (cerca de 62MB)
+buffers {
+  size_kb: 63488
+  fill_policy: RING_BUFFER  # Quando o buffer está cheio, os dados mais antigos são substituídos
+}
+
+# Buffer 1: Buffer secundário menor (2MB)
+buffers {
+  size_kb: 2048
+  fill_policy: RING_BUFFER
+}
+
+# DATA SOURCE 1: Estatísticas de Processos Linux
+# Coleta informações sobre todos os processos em execução no sistema
+data_sources {
+  config {
+    name: "linux.process_stats"  # Nome do data source
+    target_buffer: 0             # Usa o buffer principal
+    process_stats_config {
+      proc_stats_poll_ms: 1000   # Coleta dados a cada 1 segundo
+      scan_all_processes_on_start: true  # Captura todos os processos no início
+    }
+  }
+}
+
+# DATA SOURCE 2: Estatísticas do Sistema Linux
+# Coleta informações gerais sobre o sistema
+data_sources {
+  config {
+    name: "linux.sys_stats"      # Nome do data source
+    target_buffer: 0             # Usa o buffer principal
+    sys_stats_config {
+      stat_period_ms: 1000       # Coleta dados a cada 1 segundo
+      stat_counters: STAT_CPU_TIMES      # Coleta tempos de CPU (user, system, idle, etc)
+      stat_counters: STAT_MEMORY         # Coleta estatísticas de memória (RAM utilizada, disponível, swap)
+      stat_counters: STAT_CPU_FREQUENCY  # Coleta frequências de CPU (para análise de throttling)
+    }
+  }
+}
+
+# DATA SOURCE 3: Android Heap Profiler
+# Coleta detalhes sobre alocações de memória heap em aplicativos Android
+data_sources {
+  config {
+    name: "android.heapprofd"    # Nome do data source
+    target_buffer: 0             # Usa o buffer principal
+    heapprofd_config {
+      sampling_interval_bytes: 4096  # Amostra a cada 4KB alocados (reduz overhead)
+      continuous_dump_config {
+        dump_phase_ms: 1000          # Fase inicial para dump
+        dump_interval_ms: 5000       # Dumping da heap a cada 5 segundos
+      }
+      process_cmdline: "com.example.app"  # Nome do aplicativo a ser analisado (SUBSTITUIR)
+    }
+  }
+}
+
+# DATA SOURCE 4: Monitoramento de Energia do Android
+# Coleta informações sobre uso de bateria e trilhos de energia
+data_sources {
+  config {
+    name: "android.power"       # Nome do data source
+    target_buffer: 0            # Usa o buffer principal
+    android_power_config {
+      battery_poll_ms: 1000     # Coleta dados de bateria a cada 1 segundo
+      
+      # Tipos de contadores de bateria coletados:
+      battery_counters: BATTERY_COUNTER_CAPACITY_PERCENT  # Nível de bateria em porcentagem
+      battery_counters: BATTERY_COUNTER_CHARGE            # Carga da bateria (coulombs)
+      battery_counters: BATTERY_COUNTER_CURRENT           # Corrente atual (mA)
+      
+      collect_power_rails: true  # Coleta dados de subsistemas de energia (GPU, CPU, etc)
+    }
+  }
+}
+
+# DATA SOURCE 5: Linux Ftrace (Function Tracer)
+# Principal fonte de dados para eventos do kernel
+data_sources {
+  config {
+    name: "linux.ftrace"        # Nome do data source
+    target_buffer: 0            # Usa o buffer principal
+    ftrace_config {
+      # EVENTOS DE ENERGIA
+      ftrace_events: "power/suspend_resume"  # Rastreia quando o dispositivo suspende/resume
+      ftrace_events: "power/cpu_frequency"   # Captura mudanças na frequência da CPU
+      ftrace_events: "power/cpu_idle"        # Captura quando a CPU entra/sai de estados idle
+      
+      # EVENTOS DE AGENDAMENTO
+      ftrace_events: "sched/sched_process_exec"  # Quando um processo executa um novo programa
+      ftrace_events: "sched/sched_process_exit"  # Quando um processo termina
+      ftrace_events: "sched/sched_process_fork"  # Quando um processo cria um novo processo
+      ftrace_events: "sched/sched_switch"        # Quando o scheduler troca de processos (crucial para CPU)
+      
+      # EVENTOS DE TAREFA
+      ftrace_events: "task/task_newtask"        # Quando uma nova tarefa é criada
+      ftrace_events: "task/task_rename"         # Quando uma tarefa é renomeada
+      
+      buffer_size_kb: 2048       # Buffer interno para ftrace (2MB)
+      drain_period_ms: 250       # Drenar dados a cada 250ms para o buffer principal
+    }
+  }
+}
+
+# Duração total da captura (30 segundos)
+# Após esse tempo, o trace será finalizado automaticamente
+duration_ms: 30000s
